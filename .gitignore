@@ -1,0 +1,52 @@
+# Data files — never commit
+data/
+results/
+papers/
+
+# Claude Code project metadata
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# uv
+.uv/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Model checkpoints and large binaries
+*.pth
+*.pt
+*.ckpt
+*.mat
+
+# Jupyter (in case someone opens one accidentally)
+.ipynb_checkpoints/
+*.ipynb
+
+# Test / coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
