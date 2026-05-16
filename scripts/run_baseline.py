@@ -44,6 +44,7 @@ from src.data_loader import load_continuous
 from src.decode import (
     CHAR_MATRIX,
     accuracy_vs_reps,
+    decode_characters,
     true_char_indices_from_epochs,
 )
 from src.preprocessing import preprocess
@@ -117,6 +118,38 @@ def _print_table(
     print()
 
 
+def _print_decoded_chars(
+    probs: np.ndarray,
+    stimulus_codes: np.ndarray,
+    char_indices: np.ndarray,
+    true_indices: np.ndarray,
+    n_chars: int,
+    max_reps: int,
+    subject: str,
+) -> None:
+    flat = CHAR_MATRIX.ravel()
+    decoded = decode_characters(probs, stimulus_codes, char_indices, n_chars, max_reps=max_reps)
+    correct = decoded == true_indices
+
+    print(f"\n{'='*60}")
+    print(f"  Subject {subject} — decoded characters at {max_reps} repetitions")
+    print(f"{'='*60}")
+    print(f"  {'#':>4}  {'Predicted':>10}  {'True':>6}  {'':>4}")
+    print(f"  {'-'*4}  {'-'*10}  {'-'*6}  {'-'*4}")
+    for i, (pred_idx, true_idx, ok) in enumerate(zip(decoded, true_indices, correct)):
+        pred_char = flat[pred_idx]
+        true_char = flat[true_idx]
+        mark = "OK" if ok else "WRONG"
+        print(f"  {i+1:>4}  {pred_char:>10}  {true_char:>6}  {mark}")
+
+    predicted_str = "".join(flat[decoded])
+    true_str      = "".join(flat[true_indices])
+    n_correct = int(correct.sum())
+    print(f"\n  Predicted : {predicted_str}")
+    print(f"  True      : {true_str}")
+    print(f"  Correct   : {n_correct}/{n_chars}  ({n_correct/n_chars:.1%})\n")
+
+
 def _save_csv(result: dict, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     rows = []
@@ -151,6 +184,7 @@ def run(
     save_csv: Path | None = None,
     seed: int = DEFAULT_SEED,
     rep_counts: tuple[int, ...] = (5, 10, 15),
+    show_chars: bool = False,
 ) -> dict:
     """Run the full WE-SPSQ-CNN pipeline for one subject."""
     if augment not in ("naive", "mixup", "mixed"):
@@ -256,6 +290,13 @@ def run(
                 test_data.char_indices, true_test, test_data.n_chars,
                 rep_counts=rep_counts,
             )
+            if show_chars:
+                _print_decoded_chars(
+                    test_probs, test_data.stimulus_codes,
+                    test_data.char_indices, true_test, test_data.n_chars,
+                    max_reps=max(rep_counts),
+                    subject=subject,
+                )
 
     # ---- Print and optionally save ------------------------------------------
     _print_table(subject, train_accs, test_accs, rep_counts)
@@ -305,6 +346,8 @@ if __name__ == "__main__":
                     help="Beta(alpha,alpha) concentration for Mixup/mixed")
     ap.add_argument("--mixup-fraction", type=float, default=0.5,
                     help="Fraction of generated samples from Mixup for 'mixed' strategy")
+    ap.add_argument("--show-chars", action="store_true",
+                    help="Print predicted vs true character table after test evaluation")
     args = ap.parse_args()
 
     run(
@@ -321,4 +364,5 @@ if __name__ == "__main__":
         save_csv=args.save,
         seed=args.seed,
         rep_counts=tuple(args.reps),
+        show_chars=args.show_chars,
     )
